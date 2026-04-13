@@ -64,10 +64,15 @@ CLAUDE.md
 
 # UMCCI Checker
 tools/umcci-checker/storage/
-tools/umcci-checker/tmo-task.md
+tools/umcci-checker/tmp-task.md
 tools/umcci-checker/UMCCI.pdf
 tools/umcci-checker/matter-device/node_modules/
 tools/umcci-checker/matter-device/dist/
+
+# Mobile Apps
+mobile_apps/downloads/
+mobile_apps/tmp-task.md
+mobile_apps/crawler/tools/*.jar
 
 # Editors
 .vscode/

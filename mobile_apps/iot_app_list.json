@@ -1,0 +1,182 @@
+{
+  "_comment": "Recommended IoT companion apps for security analysis (Android only). Package names verified against Google Play Store listings.",
+  "last_updated": "2025-04",
+  "apps": [
+    {
+      "name": "Google Home",
+      "package_name": "com.google.android.apps.chromecast.app",
+      "vendor": "Google",
+      "category": "Smart Home Platform",
+      "matter_support": true,
+      "notes": "Primary controller for Google/Nest devices; acts as a Matter hub"
+    },
+    {
+      "name": "Amazon Alexa",
+      "package_name": "com.amazon.dee.app",
+      "vendor": "Amazon",
+      "category": "Smart Home Platform",
+      "matter_support": true,
+      "notes": "Controls Amazon Echo family and Matter-certified devices"
+    },
+    {
+      "name": "Samsung SmartThings",
+      "package_name": "com.samsung.android.oneconnect",
+      "vendor": "Samsung",
+      "category": "Smart Home Platform",
+      "matter_support": true,
+      "notes": "Samsung IoT hub; supports Matter and Zigbee via SmartThings Station"
+    },
+    {
+      "name": "Tuya Smart",
+      "package_name": "com.tuya.smart",
+      "vendor": "Tuya",
+      "category": "White-label IoT Platform",
+      "matter_support": true,
+      "notes": "Backend platform for hundreds of third-party IoT brands"
+    },
+    {
+      "name": "Smart Life (Tuya OEM)",
+      "package_name": "com.tuya.smartlife",
+      "vendor": "Tuya",
+      "category": "White-label IoT Platform",
+      "matter_support": true,
+      "notes": "Tuya-powered app rebranded for end consumers; widely deployed"
+    },
+    {
+      "name": "Mi Home (Xiaomi Home)",
+      "package_name": "com.xiaomi.smarthome",
+      "vendor": "Xiaomi",
+      "category": "Smart Home Platform",
+      "matter_support": true,
+      "notes": "Controls Xiaomi/MIUI ecosystem; Matter bridge via Xiaomi hub"
+    },
+    {
+      "name": "Philips Hue",
+      "package_name": "com.philips.lighting.hue2",
+      "vendor": "Signify (Philips)",
+      "category": "Smart Lighting",
+      "matter_support": true,
+      "notes": "Smart lighting; Hue Bridge exposes Matter endpoint"
+    },
+    {
+      "name": "TP-Link Kasa Smart",
+      "package_name": "com.tplink.kasa_android",
+      "vendor": "TP-Link",
+      "category": "Smart Plug / Lighting",
+      "matter_support": true,
+      "notes": "Kasa range of smart plugs and bulbs; newer devices are Matter-certified"
+    },
+    {
+      "name": "TP-Link Tapo",
+      "package_name": "com.tplink.iot",
+      "vendor": "TP-Link",
+      "category": "Smart Home / Camera",
+      "matter_support": true,
+      "notes": "Newer TP-Link brand for cameras, plugs, and hubs"
+    },
+    {
+      "name": "eWeLink",
+      "package_name": "com.coolkit",
+      "vendor": "ITEAD / Sonoff",
+      "category": "Smart Home Platform",
+      "matter_support": false,
+      "notes": "Controls SONOFF devices; large install base in DIY IoT community"
+    },
+    {
+      "name": "Ring",
+      "package_name": "com.ringapp",
+      "vendor": "Amazon (Ring)",
+      "category": "Smart Security / Doorbell",
+      "matter_support": false,
+      "notes": "Video doorbells and security cameras; integrates with Alexa"
+    },
+    {
+      "name": "Arlo",
+      "package_name": "com.arlo.app",
+      "vendor": "Arlo Technologies",
+      "category": "Smart Security / Camera",
+      "matter_support": false,
+      "notes": "Wire-free security camera system"
+    },
+    {
+      "name": "EZVIZ",
+      "package_name": "com.ezviz",
+      "vendor": "Hikvision (EZVIZ)",
+      "category": "Smart Security / Camera",
+      "matter_support": false,
+      "notes": "Consumer brand of Hikvision; IP cameras and smart locks"
+    },
+    {
+      "name": "Reolink",
+      "package_name": "com.mcu.reolink",
+      "vendor": "Reolink",
+      "category": "Smart Security / Camera",
+      "matter_support": false,
+      "notes": "IP cameras and NVR systems"
+    },
+    {
+      "name": "eufy Security",
+      "package_name": "com.eufylife.smarthome",
+      "vendor": "Anker (eufy)",
+      "category": "Smart Security / Camera",
+      "matter_support": false,
+      "notes": "Local-storage cameras and smart home devices by Anker"
+    },
+    {
+      "name": "Govee Home",
+      "package_name": "com.govee.home",
+      "vendor": "Govee",
+      "category": "Smart Lighting",
+      "matter_support": true,
+      "notes": "LED strips and ambient lighting; newer lineup is Matter-certified"
+    },
+    {
+      "name": "SwitchBot",
+      "package_name": "com.theswitchbot.switchbot",
+      "vendor": "SwitchBot",
+      "category": "Smart Home Automation",
+      "matter_support": true,
+      "notes": "Retrofit physical switches, curtains, hubs; Matter via SwitchBot Hub 2"
+    },
+    {
+      "name": "Meross",
+      "package_name": "com.meross.meross",
+      "vendor": "Meross",
+      "category": "Smart Plug / Lighting",
+      "matter_support": true,
+      "notes": "Smart plugs and lighting; early Matter adopter"
+    },
+    {
+      "name": "Roborock",
+      "package_name": "com.roborock.smart",
+      "vendor": "Roborock",
+      "category": "Smart Appliance (Robot Vacuum)",
+      "matter_support": false,
+      "notes": "Premium robot vacuum line spun off from Xiaomi"
+    },
+    {
+      "name": "iRobot Home",
+      "package_name": "com.irobot.home",
+      "vendor": "iRobot (Amazon)",
+      "category": "Smart Appliance (Robot Vacuum)",
+      "matter_support": false,
+      "notes": "Roomba robot vacuums; acquired by Amazon in 2023"
+    },
+    {
+      "name": "Home Assistant",
+      "package_name": "io.homeassistant.companion.android",
+      "vendor": "Home Assistant (Open Source)",
+      "category": "Smart Home Platform",
+      "matter_support": true,
+      "notes": "Open-source home automation; reference implementation for Matter integration"
+    },
+    {
+      "name": "Wemo",
+      "package_name": "com.belkin.wemo.controlling",
+      "vendor": "Belkin",
+      "category": "Smart Plug",
+      "matter_support": false,
+      "notes": "Belkin smart plugs; legacy Wi-Fi protocol (no Matter as of 2024)"
+    }
+  ]
+}

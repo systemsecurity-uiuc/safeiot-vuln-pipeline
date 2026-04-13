@@ -1,19 +1,39 @@
 # Mobile Apps
 
-This directory contains data and tooling for collecting and analyzing mainstream IoT mobile applications, in support of cybersecurity label verification (see [Lalaine](https://github.com/safeiot)).
+Tooling for collecting and preparing mainstream IoT Android applications for security analysis (e.g. with JADX), in support of the SafeIoT / Lalaine research pipeline.
 
 ## Structure
 
 ```
 mobile_apps/
-├── crawler/     # Python scripts for app collection and metadata parsing
-└── data/        # Collected app metadata and analysis outputs (gitignored by default)
+├── crawler/            # Download and conversion scripts
+│   ├── fetch_apk.py    # Download APKs from APKPure
+│   ├── convert_apk.py  # Convert XAPK / APKM / AAB → plain APK
+│   ├── requirements.txt
+│   ├── tools/          # Place APKEditor.jar and bundletool.jar here (gitignored)
+│   └── README.md
+├── downloads/          # Downloaded APK packages — gitignored, not committed
+└── iot_app_list.json   # Recommended IoT apps with Android package names
 ```
 
-## Data Collection
+## Quick start
 
-App data is collected automatically via a scheduled GitHub Actions workflow that runs the crawler scripts on a regular basis. See [crawler/README.md](crawler/README.md) for details on the scripts and how to run them locally.
+```bash
+cd crawler
+pip install -r requirements.txt
 
-## Data
+# Download latest Tuya Smart APK
+python fetch_apk.py com.tuya.smart
 
-Raw and processed data lives in `data/`. Large datasets are excluded from version control via `.gitignore`. Sample files or data schemas will be documented here as the pipeline matures.
+# Convert the downloaded XAPK to a plain APK
+python convert_apk.py ../downloads/com.tuya.smart/*.xapk
+
+# Batch-download all apps in the recommended list
+python fetch_apk.py --batch ../iot_app_list.json
+```
+
+See [crawler/README.md](crawler/README.md) for full usage and dependency setup.
+
+## Recommended app list
+
+`iot_app_list.json` contains 22 widely-deployed IoT companion apps covering major platforms (Google Home, Alexa, SmartThings, Tuya, Xiaomi), security cameras, smart lighting, and open-source controllers (Home Assistant). Each entry includes the Android package name, vendor, Matter support status, and a short note.
