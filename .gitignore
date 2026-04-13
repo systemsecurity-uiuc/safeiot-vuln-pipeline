@@ -49,6 +49,7 @@ coverage.xml
 .dmypy.json
 
 # LLM agent / AI coding tools
+CLAUDE.md
 .claude/
 .cursor/
 .aider*
@@ -60,6 +61,11 @@ coverage.xml
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# UMCCI Checker
+tools/umcci-checker/storage/
+tools/umcci-checker/tmo-task.md
+tools/umcci-checker/UMCCI.pdf
 
 # Editors
 .vscode/
