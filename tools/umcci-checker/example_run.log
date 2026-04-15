@@ -1,0 +1,153 @@
+
+============================================================
+ UMCCI Checker Demo — Flaw Type 4
+ Untrusted Fabric Information (VID & Label Forgery)
+============================================================
+
+[UMCCI] === Environment Check ===
+[UMCCI] ✓ Android device: 39290DLJG002LB
+[UMCCI] ✓ chip-tool found
+[UMCCI] matter-device not found or not built — scaffolding now...
+[UMCCI]   Source files written.
+[UMCCI]   Running npm install...
+[UMCCI]   Running npm run build...
+[UMCCI]   matter-device built successfully.
+[UMCCI] ✓ matter-device built and ready
+[UMCCI] Environment check passed.
+
+[UMCCI] chip-tool storage: /var/folders/g1/_twc9zf91_sf4g_rx77k9dx00000gp/T/chip-kvs-tompwge4
+[UMCCI] === Starting Virtual Matter Device ===
+[UMCCI] ✓ Pairing code: 34970112332
+[UMCCI] === Flaw Type 4: chip-tool pairs with forged VID=4362 ===
+[UMCCI]   chip-tool pairing onnetwork-long 2 20202021 3840 --commissioner-vendor-id 4362
+[UMCCI] ✓ Paired as node 2 with forged VID=4362
+[UMCCI] Setting forged fabric label: 'SmartThings Hub'
+[UMCCI]   chip-tool operationalcredentials update-fabric-label SmartThings Hub 2 0
+[UMCCI] ✓ Fabric label set to 'SmartThings Hub'
+[UMCCI] Opening commissioning window for Google Home (ECM)...
+[UMCCI]   chip-tool pairing open-commissioning-window 2 1 900 1000 3840
+[UMCCI] ✓ Commissioning window open — Google Home pairing code: 35619734595
+[UMCCI] === Agent Task: Pair Google Home with virtual device ===
+  [agent] I'll start by taking a screenshot to see the current state of the phone screen.
+  [agent] Google Home app is already open showing the home screen. I can see a "+" button in the top right. Let me check the screen dimensions and tap the "+" button to add a new device.
+  [agent] Let me use UI dump to find exact button coordinates.
+  [agent] The "Add" menu appeared. I can see "Device" as the first option. Let me tap it.
+  [agent] The "Add a device" screen is showing with a QR code scanner. I need to tap "+ Add a different way" to enter the pairing code manually.
+  [agent] I can see a "Matter-enabled device" has been detected (6552:32768:3840) under "Nearby devices". Let me tap on it to start the pairing.
+  [agent] I can see the "Matter-enabled device" screen with a "Use pairing code" button. Let me tap it.
+  [agent] The "Enter pairing code" screen is showing. Let me tap the input field and enter the pairing code.
+  [agent] The pairing code "35619734595" is entered correctly. Now let me tap Continue. The keyboard is covering it, so I'll press the keyboard's checkmark/done first.
+  [agent] The keyboard is dismissed and I can see the "Continue" button. The pairing code "35619734595" is entered. Let me tap Continue.
+  [agent] A consent screen appeared asking to connect the device to Google Account. I need to tap "Agree".
+  [agent] "Get ready for setup" screen is showing. I'll tap "I'm ready" to continue.
+  [agent] The "Uncertified device" warning appeared as expected. I'll tap "Set up anyway" to proceed.
+  [agent] Excellent! **"Device connected"** is shown with a checkmark! The Matter device has been successfully paired. However, I notice it skipped the naming step. Let me tap "Done" and check the device name.
+  [agent] The "Where is this device?" screen appeared. Per instructions, I'll select the top option "Jet Bedroom" and tap Next.
+  [agent] The "Create a unique name" screen appeared with the default name "Jet Bedroom device". I need to clear it and enter "UMCCI-OnOff-Light".
+  [agent] Let me take a cleaner approach to clear the field completely:
+  [agent] The field appears to be cleared (showing hint text "Create a unique name"). Now let me type the device name.
+  [agent] The device name "UMCCI-OnOff-Light" is correctly entered. Let me take a screenshot to confirm and then tap Next.
+  [agent] The name "UMCCI-OnOff-Light" is correctly entered. Let me dismiss the keyboard and tap Next.
+  [agent] The setup is progressing — "Getting your device ready. This may take a minute." Let me wait and check again.
+  [agent] Setup seems complete and returned to Google Home. Let me tap "All devices" to see if UMCCI-OnOff-Light was added.
+  [agent] The device isn't visible yet. Let me check the Activity tab to see what happened during setup.
+  [agent] An image in the conversation exceeds the dimension limit for many-image requests (2000px). Start a new session with fewer images.
+[UMCCI] Agent task complete | cost=$1.2072 | stop_reason='stop_sequence' | is_error=True | num_turns=103
+[UMCCI] Waiting for Google Home to sync fabric data...
+[UMCCI] === Agent Task: Verify forged fabric info in Google Home ===
+  [agent] I'll use ADB via the Bash tool to interact with the Android device. Let me start by checking the connected device and taking an initial screenshot.
+  [agent] Device is connected. Now let me take a screenshot:
+  [agent] Google Home is already open on the Activity tab. I need to tap "Home" to get to the devices view.
+  [agent] I'm on the Home tab now. I can see "All devices" button. Let me tap it to see all devices.
+  [agent] Let me try tapping "All devices" with more precise coordinates:
+  [agent] Let me dump the UI hierarchy to find exact element positions:
+  [agent] Found it! "All devices" button is at bounds [324,361][506,406]. Let me tap the center:
+  [agent] I can see the current view. Let me scroll down to find more devices and also check if I need to switch the location filter:
+  [agent] Let me tap on the location "Ask Jet Bedroom" to switch the home/location context:
+  [agent] That opened a chat interface. Let me go back and find the correct way to switch locations:
+  [agent] Good, back on the main screen. I don't see the UMCCI device. Let me check the UI hierarchy and also try finding the home switcher:
+  [agent] The UMCCI device isn't in this home. Let me tap the profile icon (J) at the top right to switch homes:
+  [agent] I can see "Switch home" option. Let me tap it:
+  [agent] Good, the profile menu is open again. Let me find and tap the clickable parent container of "Switch home":
+  [agent] The presence sensing dialog keeps appearing. Let me swipe it down to dismiss it:
+  [agent] Let me try long-pressing the "Jet Bedroom lights" group tile to expand it and check for UMCCI device:
+  [agent] I can see the group has "3 lights". Let me scroll down on this page to see all devices including UMCCI-OnOff-Light:
+  [agent] Let me scroll horizontally at the bottom to see if there are more devices in this group:
+  [agent] Let me tap the "3 lights" badge to see all devices:
+  [agent] Let me try long-pressing the "Simple device (Offline)" tile — it might be UMCCI-OnOff-Light:
+  [agent] The 3rd light must be off-screen to the right. Let me swipe the device tiles left:
+  [agent] Let me go back and approach this differently — I'll try the ⋮ menu in this group view to see all devices:
+  [agent] Let me try scrolling down significantly on the main screen to look for more rooms/devices:
+  [agent] Let me check the lightbulb icon filter and also look for a search function. First, let me get the bounds of all elements in the top filter row:
+  [agent] I see a "Lights" tab in the filter bar. Let me tap it to see individual light devices:
+  [agent] I can see the Lights view with "All off" tab selected. Let me tap on "Jet Bedroom Off" to expand and see individual lights:
+  [agent] Let me get exact coordinates and tap the dropdown arrow on the "Jet Bedroom Off" row:
+  [agent] Found the "Expand Jet Bedroom" button. Let me tap it:
+  [agent] **Found it!** 🎯 I can now see **UMCCI-OnOff-Light** listed as an individual light in the expanded "Jet Bedroom" group. There are 3 lights: - **Simple device** (Offline) - **Smart Light** (Off) - **UMCCI-OnOff-Light** (Off)  Now I need to long-press the UMCCI-OnOff-Light tile to open its detail/contr
+  [agent] The "UMCCI-OnOff-Light" detail page is open. Now I'll tap the gear icon ⚙️ to open its settings.
+  [agent] The tap didn't register. Let me get exact coordinates for the gear icon via UI dump.
+  [agent] Found the Settings button at `[774,122][900,248]`. Tapping the correct coordinates.
+  [agent] The device settings page is open and shows **"UMCCI-OnOff-Light"** as the subtitle. I can see "Linked Matter apps & services" — tapping it now.
+  [agent] The **"Linked Matter apps & services"** page is now visible. Here is a clear screenshot of all fabric entries. Let me also capture the exact text via UI dump for precision.
+  [agent] ---  ## ✅ Result: Flaw Type 4 Confirmed — Forged Fabric Metadata Displayed by Google Home  The **"Linked Matter apps & services"** page for the `UMCCI-OnOff-Light` device shows exactly **2 fabric entries**:  ---  ### 📋 Fabric List (Exact Text)  | # | Vendor ID | Label | |---|-----------|-------| | 1
+[UMCCI] Agent task complete | cost=$0.4595 | stop_reason='end_turn' | is_error=False | num_turns=39
+
+============================================================
+ FLAW TYPE 4 — TEST REPORT
+============================================================
+  Forged Vendor ID : 4362  (impersonating SmartThings)
+  Forged Label     : SmartThings Hub
+  Device name      : UMCCI-OnOff-Light
+
+Verification findings (from agent):
+----------------------------------------
+Let me start by taking a screenshot to see the current state of the device.
+The screen shows a "Device connected" confirmation page in Google Home. I'll tap "Done" to proceed to the main view.
+Still on the same screen. Let me tap "Done" more precisely.
+The "Done" button isn't responding to taps. Let me use UI automator to find and click it reliably.
+Found the "Done" button at bounds `[711,2040][954,2149]`. Tapping the correct coordinates now.
+We're in a setup flow. Let me press Back to exit it and navigate directly to the Google Home main screen.
+A "Quit setup?" dialog appeared. I'll tap "Quit" to exit the setup flow.
+Found the "Quit" button at `[730,1229][874,1337]`. Tapping it now.
+Now I'm on the Google Home main screen. I can see "All devices" view is already selected. I need to scroll down or look for "UMCCI-OnOff-Light". Let me tap "All devices" to make sure I'm in that view and scroll to find the device.
+I can see the home screen with devices. There's a "Matter device Off" tile visible. Let me scroll down to check for more devices and find "UMCCI-OnOff-Light".
+The screen shows only a few devices. The "Matter device Off" tile in "In your home" is likely the newly paired UMCCI-OnOff-Light. Let me long-press it to open its detail page.
+The "Matter device, Light, Off." tile is at `[41,947][495,1145]`. Long-pressing it now.
+The "Matter device" detail page is open — this is the UMCCI-OnOff-Light. Now I'll tap the gear icon ⚙️ to open its settings.
+The tap didn't register. Let me get exact coordinates for the gear icon via UI dump.
+Found the Settings button at `[774,122][900,248]`. Tapping the correct coordinates.
+The device settings page is open and shows **"UMCCI-OnOff-Light"** as the subtitle. I can see "Linked Matter apps & services" — tapping it now.
+The **"Linked Matter apps & services"** page is now visible. Here is a clear screenshot of all fabric entries. Let me also capture the exact text via UI dump for precision.
+---
+
+## ✅ Result: Flaw Type 4 Confirmed — Forged Fabric Metadata Displayed by Google Home
+
+The **"Linked Matter apps & services"** page for the `UMCCI-OnOff-Light` device shows exactly **2 fabric entries**:
+
+---
+
+### 📋 Fabric List (Exact Text)
+
+| # | Vendor ID | Label |
+|---|-----------|-------|
+| 1 | **Vendor ID: 110A** | **SmartThings Hub** |
+| 2 | **Vendor ID: 6006** | Android, Google Home, Google Assistant |
+
+---
+
+### 🔍 Security Analysis
+
+| Field | Details |
+|-------|---------|
+| **Forged Vendor ID** | `0x110A` = **4362 decimal** ✅ — matches the attacker-injected value |
+| **Forged Label** | **"SmartThings Hub"** ✅ — matches the attacker-controlled fabric label |
+| **Source of data** | Read directly from the device's fabric table (NOC/fabric metadata) — **never cryptographically verified against Samsung's real VID** |
+| **Legitimate fabric** | Vendor ID `0x6006` = Google (6006) labelled "Android, Google Home, Google Assistant" |
+
+---
+
+### 🚨 Flaw Type 4 — Untrusted Fabric Information: **CONFIRMED**
+
+Google Home displays the **attacker-controlled fabric metadata verbatim** — including the forged Vendor ID (`0x110A`) and the spoofed label `"SmartThings Hub"`. There is **no cryptographic binding** between the displayed Vendor ID and the actual identity of the commissioner. An attacker who has commissioned the device (e.g., via a rogue hub or script) can inject any Vendor ID and label they choose, and Google Home will present it to the user as if it were legitimate, creating a false sense of trust in the "SmartThings Hub" entry.
+============================================================
+[UMCCI] Stopping virtual Matter device...

