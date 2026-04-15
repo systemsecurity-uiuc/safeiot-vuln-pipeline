@@ -66,8 +66,7 @@ CLAUDE.md
 tools/umcci-checker/storage/
 tools/umcci-checker/tmp-task.md
 tools/umcci-checker/UMCCI.pdf
-tools/umcci-checker/matter-device/node_modules/
-tools/umcci-checker/matter-device/dist/
+tools/umcci-checker/matter-device/
 
 # Mobile Apps
 mobile_apps/downloads/

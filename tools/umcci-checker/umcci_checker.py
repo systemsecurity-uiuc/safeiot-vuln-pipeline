@@ -11,6 +11,7 @@ Agent:     Claude Code SDK (claude_agent_sdk)
 GUI:       mobile-mcp (Android automation via ADB)
 """
 
+import argparse
 import asyncio
 import re
 import subprocess
@@ -39,11 +40,171 @@ DEVICE_DISC      = 3840
 # chip-tool keeps fabric credentials in a KVS directory; use a per-run temp dir
 # so it never conflicts with stale data from a previous run.
 _chip_storage: str = ""
+_debug: bool = False
 
 # ─────────────────────────────────────────────────────────────────────────────
 
 def log(msg: str) -> None:
     print(f"[UMCCI] {msg}", flush=True)
+
+
+def log_debug(msg: str) -> None:
+    """Print only when --debug is set."""
+    if _debug:
+        print(f"  [matter.js] {msg}", flush=True)
+
+
+# ── matter-device scaffolding ─────────────────────────────────────────────────
+
+_PACKAGE_JSON = """\
+{
+    "name": "umcci-virtual-device",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Virtual OnOff Matter device for UMCCI Checker Flaw Type 4 demo",
+    "dependencies": {
+        "@matter/main": "0.15.4"
+    },
+    "devDependencies": {
+        "typescript": "~5.8.3",
+        "@types/node": "^24.1.0"
+    },
+    "scripts": {
+        "build": "tsc",
+        "app": "node --enable-source-maps dist/DeviceNode.js",
+        "clean": "node -e 'fs.rmSync(\\"dist\\", { recursive: true, force: true })'"
+    }
+}
+"""
+
+_TSCONFIG_JSON = """\
+{
+    "compilerOptions": {
+        "strict": true,
+        "target": "es2022",
+        "module": "node16",
+        "moduleResolution": "node16",
+        "noImplicitAny": true,
+        "noImplicitOverride": true,
+        "outDir": "./dist",
+        "skipLibCheck": true
+    },
+    "include": [
+        "./src/**/*.ts"
+    ]
+}
+"""
+
+_DEVICE_NODE_TS = """\
+#!/usr/bin/env node
+/**
+ * Virtual OnOff Light device for UMCCI Checker — Flaw Type 4 demo.
+ * Stripped down from matter.js OnOff example; no CLI command execution.
+ */
+
+import {
+    DeviceTypeId,
+    Endpoint,
+    Environment,
+    Logger,
+    ServerNode,
+    StorageService,
+    Time,
+    VendorId,
+} from "@matter/main";
+import { OnOffLightDevice } from "@matter/main/devices";
+
+const logger = Logger.get("DeviceNode");
+
+async function main() {
+    const environment = Environment.default;
+    const storageService = environment.get(StorageService);
+    console.log(`Storage location: ${storageService.location} (Directory)`);
+
+    const deviceStorage = (await storageService.open("device")).createContext("data");
+
+    const passcode =
+        environment.vars.number("passcode") ?? (await deviceStorage.get("passcode", 20202021));
+    const discriminator =
+        environment.vars.number("discriminator") ?? (await deviceStorage.get("discriminator", 3840));
+    const vendorId =
+        environment.vars.number("vendorid") ?? (await deviceStorage.get("vendorid", 0xfff1));
+    const productId =
+        environment.vars.number("productid") ?? (await deviceStorage.get("productid", 0x8000));
+    const port = environment.vars.number("port") ?? 5542;
+    const uniqueId =
+        environment.vars.string("uniqueid") ??
+        (await deviceStorage.get("uniqueid", Time.nowMs())).toString();
+
+    await deviceStorage.set({ passcode, discriminator, vendorid: vendorId, productid: productId, uniqueid: uniqueId });
+
+    const server = await ServerNode.create({
+        id: uniqueId,
+        network: { port },
+        commissioning: { passcode, discriminator },
+        productDescription: {
+            name: "UMCCI OnOff Light",
+            deviceType: DeviceTypeId(OnOffLightDevice.deviceType),
+        },
+        basicInformation: {
+            vendorName: "umcci-demo",
+            vendorId: VendorId(vendorId),
+            nodeLabel: "UMCCI OnOff Light",
+            productName: "UMCCI OnOff Light",
+            productLabel: "UMCCI OnOff Light",
+            productId,
+            serialNumber: `umcci-${uniqueId}`,
+            uniqueId,
+        },
+    });
+
+    const endpoint = new Endpoint(OnOffLightDevice, { id: "onoff" });
+    await server.add(endpoint);
+
+    endpoint.events.onOff.onOff$Changed.on(value => {
+        console.log(`OnOff is now ${value ? "ON" : "OFF"}`);
+    });
+
+    logger.info(server);
+    await server.run();
+}
+
+main().catch(error => console.error(error));
+"""
+
+
+def _ensure_matter_device() -> None:
+    """
+    Create and build the matter-device directory from embedded sources if it is
+    missing or the compiled output (dist/DeviceNode.js) does not exist.
+    """
+    matter_dir = Path(MATTER_DIR)
+    dist_js = matter_dir / "dist" / "DeviceNode.js"
+
+    if dist_js.exists():
+        return
+
+    log("matter-device not found or not built — scaffolding now...")
+
+    src_dir = matter_dir / "src"
+    src_dir.mkdir(parents=True, exist_ok=True)
+
+    (matter_dir / "package.json").write_text(_PACKAGE_JSON)
+    (matter_dir / "tsconfig.json").write_text(_TSCONFIG_JSON)
+    (src_dir / "DeviceNode.ts").write_text(_DEVICE_NODE_TS)
+    log("  Source files written.")
+
+    log("  Running npm install...")
+    r = subprocess.run(["npm", "install"], cwd=str(matter_dir), capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit(f"ERROR: npm install failed:\n{r.stderr[:500]}")
+
+    log("  Running npm run build...")
+    r = subprocess.run(["npm", "run", "build"], cwd=str(matter_dir), capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit(f"ERROR: npm run build failed:\n{r.stderr[:500]}")
+
+    log("  matter-device built successfully.")
 
 
 # ── Step 0: Environment check ─────────────────────────────────────────────────
@@ -62,11 +223,7 @@ def check_environment() -> None:
         sys.exit(f"ERROR: chip-tool not found at {CHIP_TOOL}")
     log("✓ chip-tool found")
 
-    if not (Path(MATTER_DIR) / "dist" / "DeviceNode.js").exists():
-        sys.exit(
-            f"ERROR: matter-device not built — run 'npm install && npm run build' "
-            f"inside {MATTER_DIR}/"
-        )
+    _ensure_matter_device()
     log("✓ matter-device built and ready")
 
     log("Environment check passed.\n")
@@ -75,9 +232,9 @@ def check_environment() -> None:
 # ── Step 1: matter.js virtual device ─────────────────────────────────────────
 
 def is_already_commissioned() -> bool:
-    """Detect prior commissioning by checking whether storage has data."""
+    """Detect prior commissioning by checking whether storage contains any files."""
     storage = Path(STORAGE_PATH)
-    return storage.exists() and any(storage.rglob("*.json"))
+    return storage.exists() and any(f.is_file() for f in storage.rglob("*"))
 
 
 def start_matter_device() -> tuple[subprocess.Popen, str | None]:
@@ -107,7 +264,7 @@ def start_matter_device() -> tuple[subprocess.Popen, str | None]:
         assert proc.stdout is not None
         for raw in proc.stdout:
             line = raw.rstrip()
-            print(f"  [matter.js] {line}")
+            log_debug(line)
             m = re.search(r"manual pairing code:\s*([\d-]+)", line, re.IGNORECASE)
             if m:
                 pairing_code = m.group(1).replace("-", "")
@@ -285,7 +442,13 @@ demonstrating that Google Home displays attacker-controlled fabric metadata with
 # ── Main orchestration ────────────────────────────────────────────────────────
 
 async def main() -> None:
-    global _chip_storage
+    global _chip_storage, _debug
+
+    parser = argparse.ArgumentParser(description="UMCCI Checker Demo — Flaw Type 4")
+    parser.add_argument("--debug", action="store_true",
+                        help="Print matter.js virtual device output (hidden by default)")
+    args = parser.parse_args()
+    _debug = args.debug
 
     print()
     print("=" * 60)

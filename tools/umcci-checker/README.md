@@ -11,6 +11,7 @@ The checker pairs a virtual Matter device with Google Home, then injects a secon
 ## Prerequisites
 
 - macOS host with Python 3.11+
+- Node.js and npm (for the virtual Matter device, built automatically on first run)
 - Android phone connected via ADB (`adb devices` must show a live device)
 - Google Home app installed and signed in on the phone
 - `chip-tool` built at `../../connectedhomeip/out/host/chip-tool`
@@ -20,12 +21,11 @@ The checker pairs a virtual Matter device with Google Home, then injects a secon
 ## Installation
 
 ```bash
-# Build the self-contained virtual Matter device
-cd matter-device && npm install && npm run build && cd ..
-
 # Install Python dependencies
 pip install -r requirements.txt
 ```
+
+The virtual Matter device (`matter-device/`) is not tracked in git. On first run the script automatically creates the source files, runs `npm install`, and builds the TypeScript — no manual setup needed.
 
 ## Running
 
