@@ -31,6 +31,7 @@ STORAGE_PATH = str(Path(__file__).parent / "storage" / "virtual-device")
 MATTER_PORT  = 5542
 
 # ── Flaw Type 4 test parameters ──────────────────────────────────────────────
+DEVICE_NAME      = "UMCCI OnOff Light"   # must match the name set in DeviceNode.ts
 ATTACKER_NODE_ID = 2          # chip-tool's local node-ID for the virtual device
 FORGED_VENDOR_ID = 4362       # SmartThings VID (confirmed in NDSS 2025 paper Table II)
 FORGED_LABEL     = "SmartThings Hub"
@@ -191,7 +192,7 @@ def _ensure_matter_device() -> None:
 
     (matter_dir / "package.json").write_text(_PACKAGE_JSON)
     (matter_dir / "tsconfig.json").write_text(_TSCONFIG_JSON)
-    (src_dir / "DeviceNode.ts").write_text(_DEVICE_NODE_TS)
+    (src_dir / "DeviceNode.ts").write_text(_DEVICE_NODE_TS.replace("UMCCI OnOff Light", DEVICE_NAME))
     log("  Source files written.")
 
     log("  Running npm install...")
@@ -407,7 +408,7 @@ Instructions:
 5. Complete the setup wizard — accept defaults for room assignment and device name.
 6. Confirm the device now appears in the Google Home device list.
 
-If the device is already paired (you can see "UMCCI OnOff Light" or similar in Google Home), report success and skip.
+If the device is already paired (you can see "{device_name}" or similar in Google Home), report success and skip.
 
 Report what you observe at each key step and whether pairing succeeded."""
 
@@ -417,22 +418,23 @@ You are a security researcher verifying Matter IoT Flaw Type 4: untrusted fabric
 Background: An attacker has paired this device using a forged Vendor ID ({forged_vid}) and \
 label "{forged_label}". The question is whether Google Home displays this forged information.
 
-TASK: In Google Home, navigate to the "Linked Matter apps & services" page for the paired \
-virtual Matter device ("Jet Bedroom device" / "UMCCI OnOff Light") and screenshot the fabric list.
+TASK: In Google Home, find the virtual Matter device named "{device_name}", open its settings, \
+and navigate to the "Linked Matter apps & services" page to screenshot the fabric list.
 
-Navigation path (confirmed working):
+Steps:
 1. Take a screenshot to see the current screen.
 2. Open Google Home app (package: com.google.android.apps.chromecast.app).
-3. On the Home tab, switch to "All devices" view (grid icon in the tab bar).
-4. LONG-PRESS the "Jet Bedroom lights" group tile — this opens the group detail page showing \
-   individual devices: "Jet Bedroom device", "Simple device", "Smart Light".
-5. LONG-PRESS the "Jet Bedroom device" tile — this opens the device control page with a \
-   gear icon (⚙️) in the top-right.
-6. Tap the gear icon (⚙️) labelled "Settings" to open device settings.
-7. Tap "Linked Matter apps & services" (subtitle: "Can control and manage this device").
-8. Take a screenshot of the resulting page — it shows all Matter fabrics linked to this device, \
+3. Find the device named "{device_name}":
+   - Switch to "All devices" view if needed (grid icon in the tab bar).
+   - Scroll through device tiles to locate "{device_name}".
+   - If not visible directly, it may be inside a room or group — try long-pressing group tiles \
+to expand them and look for "{device_name}" among the individual devices listed.
+4. Once found, LONG-PRESS the "{device_name}" tile to open its control/detail page.
+5. Tap the gear icon (⚙️) or "Settings" button to open device settings.
+6. Tap "Linked Matter apps & services" (subtitle: "Can control and manage this device").
+7. Take a screenshot of the resulting page — it shows all Matter fabrics linked to this device, \
    each with a Vendor ID and display label.
-9. Report the EXACT text of every entry listed, including Vendor ID values and labels.
+8. Report the EXACT text of every entry listed, including Vendor ID values and labels.
 
 Goal: Confirm that the forged fabric entry (Vendor ID={forged_vid} = 0x{forged_vid:04X}, \
 label="{forged_label}") appears in the "Linked Matter apps & services" list, \
@@ -488,7 +490,7 @@ async def main() -> None:
 
             # Agent: pair Google Home
             await run_agent(
-                _PAIR_PROMPT.format(pairing_code=new_code),
+                _PAIR_PROMPT.format(pairing_code=new_code, device_name=DEVICE_NAME),
                 "Pair Google Home with virtual device",
             )
 
@@ -504,6 +506,7 @@ async def main() -> None:
         # ── 4. Agent: verify forged fabric info in Google Home UI ──────────────
         result = await run_agent(
             _VERIFY_PROMPT.format(
+                device_name=DEVICE_NAME,
                 forged_vid=FORGED_VENDOR_ID,
                 forged_label=FORGED_LABEL,
             ),
