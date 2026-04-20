@@ -17,7 +17,11 @@ The primary focus of SafeIoT's current verification efforts. Matter is a major i
 - `Matter_Device_Library_v1.3.pdf` — Matter Device Library v1.3
 -->
 
-_No documents added yet._
+- [Matter 1.4 Core Specification](https://csa-iot.org/wp-content/uploads/2024/11/24-27349-006_Matter-1.4-Core-Specification.pdf)
+- [Matter 1.4.1 Core Specification](https://csa-iot.org/wp-content/uploads/2025/11/23-27349-006_Matter-1.4-Core-Specification.pdf)
+- [Matter 1.4.2 Core Specification](https://csa-iot.org/wp-content/uploads/2025/11/23-27349-008_Matter-1.4.2-Core-Specification.pdf)
+- [Matter 1.5 Core Specification](https://csa-iot.org/wp-content/uploads/2025/11/23-27349-009_Matter-1.5-Core-Specification.pdf)
+- [Matter 1.5.1 Core Specification](https://csa-iot.org/wp-content/uploads/2026/03/23-27349-010_Matter-1.5.1-Core-Specification.pdf)
 
 ### Update Instructions
 
@@ -26,7 +30,7 @@ _No documents added yet._
 3. Update the Contents list above.
 4. Commit with a message referencing the spec version (e.g., `add Matter Core Spec v1.4`).
 
----
+<!-- ---
 
 ## ZigBee
 
@@ -42,4 +46,4 @@ _Planned. Not yet added._
 
 ## MQTT
 
-_Planned. Not yet added._
+_Planned. Not yet added._ -->
