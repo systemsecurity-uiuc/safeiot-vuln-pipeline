@@ -9,7 +9,7 @@ The SafeIoT pipeline is organized into two complementary tracks, each with its o
 | Track | Repository | Focus | Example Tool |
 |---|---|---|---|
 | 1 — IoT Vulnerability Detection | **safeiot-vuln-pipeline** (this repo) | Vulnerabilities in IoT standards and their implementations, incl. commodity products such as Google Home, Apple Home, and SmartThings | [UMCCI Checker](tools/umcci-checker/) |
-| 2 — IoT SBOM, CBOM, and AI-BOM Verification | [safeiot-supply-chain-pipeline](https://github.com/systemsecurity-uiuc/safeiot-supply-chain-pipeline) | Supply-chain security, privacy, and compliance issues in Software/Cryptographic/AI Bills of Materials for IoT systems | [JBomAudit](https://github.com/code-genome/jbomaudit) _(integration pending)_ |
+| 2 — IoT SBOM, CBOM, and AI-BOM Verification | [safeiot-supply-chain-pipeline](https://github.com/systemsecurity-uiuc/safeiot-supply-chain-pipeline) | Supply-chain security, privacy, and compliance issues in Software/Cryptographic/AI Bills of Materials for IoT systems | [JBomAudit](https://github.com/systemsecurity-uiuc/safeiot-supply-chain-pipeline/tree/main/tools/jbomaudit) |
 
 ---
 
