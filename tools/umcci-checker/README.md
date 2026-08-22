@@ -1,6 +1,6 @@
 # UMCCI Checker
 
-UMCCI Checker automatically identifies security vulnerabilities in IoT vendors' Matter SDK integrations. It has been adopted by CSA, Apple, Google, SmartThings, Comcast, and Tuya.
+UMCCI Checker automatically identifies security vulnerabilities in IoT vendors' Matter SDK integrations. The flaws it found have been fixed by CSA, Apple, Google, SmartThings, Comcast, and Tuya.
 
 This demo implements **Flaw Type 4 — Untrusted Fabric Information**, based on the NDSS 2025 paper "Hidden and Lost Control: on Security Design Risks in IoT User-Facing Matter Controller."
 
