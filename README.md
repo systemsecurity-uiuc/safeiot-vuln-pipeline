@@ -1,34 +1,48 @@
-# SafeIoT Pipeline
+# SafeIoT Vulnerability Detection Pipeline
 
 Part of the **[SafeIoT Center](https://safe-iot.com/)** — the NSF-funded Center for Security and Privacy Assurance and Conformance in IoT Standards and Systems (supported by NSF, UIUC, UNC Charlotte, and Indiana University).
 
-Consumers increasingly rely on IoT products for home safety, health, and everyday convenience, yet popular IoT standards and their implementations lack holistic, rigorous security and privacy verification. SafeIoT addresses this gap with a community-driven, open-source CI/CD infrastructure that continuously verifies IoT standards and vendor implementations, with an initial focus on the **Matter** standard and **SBOM** in the IoT context.
+Consumers increasingly rely on IoT products for home safety, health, and everyday convenience, yet popular IoT standards and their implementations lack holistic, rigorous security and privacy verification. SafeIoT addresses this gap with a community-driven, open-source CI/CD infrastructure that continuously verifies IoT standards and vendor implementations.
 
 The SafeIoT pipeline is organized into two complementary tracks, each with its own repository:
 
-| Track | Repository | Focus | Example Tool |
-|---|---|---|---|
-| 1 — IoT Vulnerability Detection | **safeiot-vuln-pipeline** (this repo) | Vulnerabilities in IoT standards and their implementations, incl. commodity products such as Google Home, Apple Home, and SmartThings | [UMCCI Checker](tools/umcci-checker/) |
-| 2 — IoT SBOM, CBOM, and AI-BOM Verification | [safeiot-supply-chain-pipeline](https://github.com/systemsecurity-uiuc/safeiot-supply-chain-pipeline) | Supply-chain security, privacy, and compliance issues in Software/Cryptographic/AI Bills of Materials for IoT systems | [JBomAudit](https://github.com/systemsecurity-uiuc/safeiot-supply-chain-pipeline/tree/main/tools/jbomaudit) |
+- **Track 1 — IoT Vulnerability Detection** — **safeiot-vuln-pipeline** (this repository)
+- **Track 2 — IoT SBOM, CBOM, and AI-BOM Verification** — [safeiot-supply-chain-pipeline](https://github.com/systemsecurity-uiuc/safeiot-supply-chain-pipeline)
 
 ---
 
-## This Repository — Track 1: IoT Vulnerability Detection
+## Track 1 — IoT Vulnerability Detection
 
-This repository collects and organizes IoT ecosystem research artifacts for vulnerability detection, with an initial focus on the **Matter** protocol and **FCC IoT Cybersecurity Labeling**. It is designed to be cloned locally and run after environment setup.
+Tools that find security and privacy weaknesses in IoT specifications, firmware, software, protocols, configurations, mobile and cloud interfaces, and deployed systems.
+
+The repository is organized by the stages a verification run passes through, so that each tool's analysis object, preparation, analysis, and results sit in the part of the pipeline they belong to.
 
 ## Repository Structure
 
+The four numbered directories are the stages of a verification run. Inside each one,
+every tool has a subdirectory named after itself, so a tool's contribution appears in the
+stages it actually uses. `pipeline_harness/` is what ties a tool's stages back together
+into something runnable.
+
 ```
 safeiot-vuln-pipeline/
-├── specifications/          # IoT protocol specification documents 
-├── chip-sdk/                # CHIP SDK setup instructions and helper scripts
-├── mobile_apps/             # Mainstream IoT app data collection and analysis
-├── tools/                   # Security verification tools integrated into the pipeline
-│   └── umcci-checker/       #   UMCCI Checker (example; more tools to be added)
+├── 1_analysis_object/       # What gets analyzed
+│   ├── general/             #   Objects shared across tools (specifications, CHIP SDK, IoT apps)
+│   └── <tool-name>/         #   Objects specific to one tool
+├── 2_preprocess/            # Unpacking, conversion, environment setup
+│   └── <tool-name>/
+├── 3_security_analysis/     # The verification logic itself
+│   └── <tool-name>/
+├── 4_analysis_output/       # Reports, findings, evidence
+│   └── <tool-name>/
+├── pipeline_harness/        # Per-tool end-to-end flow description and entry point
+│   └── <tool-name>/
 └── docs/
-    └── local-deployment.md  # End-to-end guide for deploying the pipeline locally
+    └── local-deployment.md
 ```
+
+The example tool is [UMCCI Checker](pipeline_harness/umcci-checker/README.md); start at
+its harness README to see how one tool spans the stages.
 
 ---
 
@@ -44,7 +58,62 @@ safeiot-vuln-pipeline/
 ```bash
 git clone https://github.com/systemsecurity-uiuc/safeiot-vuln-pipeline.git
 cd safeiot-vuln-pipeline
-pip install -r requirements.txt
 ```
+
+Each tool manages its own dependencies. Pick a tool in
+[`pipeline_harness/`](pipeline_harness/) and follow its README — it lists the
+prerequisites and the single command that runs the tool end to end.
+
+---
+
+## Contribution Guidelines
+
+Tools reach this pipeline through the [SafeIoT Hackathon](https://safe-iot.com/#hackathon)
+and through course projects built on it. A contribution is a **tool**, and a tool is
+described by where its parts sit in the four stages.
+
+### How to contribute
+
+1. **Fork** this repository and create a branch for your tool.
+2. **Pick a name** for your tool. It becomes your subdirectory name in every stage. You only ever
+   add files under directories named after your tool, so contributions do not collide.
+3. **Add your content stage by stage**, under `<stage>/<your-tool>/`:
+
+   | Stage | What goes here |
+   |---|---|
+   | `1_analysis_object/` | The firmware, app, repository, specification, capture, or device your tool analyzes — or instructions for obtaining it |
+   | `2_preprocess/` | Unpacking, decompilation, conversion, normalization, environment setup |
+   | `3_security_analysis/` | The checks, models, experiments, or detection logic |
+   | `4_analysis_output/` | One representative example run: report, findings, logs, evidence |
+
+4. **Add a harness** at `pipeline_harness/<your-tool>/` containing a README that
+   describes the flow and a runnable entry point that takes a clean checkout to a result.
+5. **Open a pull request** against `main`.
+
+### What is expected
+
+- **Every stage directory you use gets a README.** One or two paragraphs: what this stage
+  does for your tool, what it consumes, what it produces.
+- **Skip the stages that do not apply.** Plenty of tools have no meaningful preprocessing
+  step, and some have no analysis object that can be checked in. Add a short README in
+  that stage's directory saying it does not apply and why.
+- **The harness must run.** A script, a Makefile, or a documented sequence of commands —
+  whatever form fits your tool, as long as someone else can go from a fresh clone to a
+  result by following it. This doubles as the reproducibility instruction your project
+  report needs.
+- **Commit one example output.** Someone should be able to see what your tool produces
+  without setting it up.
+- **Keep large artifacts out of git.** Firmware images, APKs, and build output belong
+  behind a fetch script or a manifest, with the downloads gitignored.
+
+### What is not required
+
+There is no plugin interface to implement, no base class to subclass, and no shared
+output format. Write your tool in whatever language and with whatever dependencies it
+needs. What you follow is the structure: the stages, the naming, and a working entry point.
+
+If your tool needs an analysis object that other tools could reuse, put it in
+[`1_analysis_object/general/`](1_analysis_object/general/) rather than under your own
+tool directory.
 
 <!-- **Contact:** Luyi Xing — lxing2@illinois.edu, Associate Professor of CS, UIUC -->

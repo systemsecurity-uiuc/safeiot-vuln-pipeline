@@ -63,14 +63,15 @@ CLAUDE.md
 .LSOverride
 
 # UMCCI Checker
-tools/umcci-checker/storage/
-tools/umcci-checker/tmp-task.md
-tools/umcci-checker/matter-device/
+3_security_analysis/umcci-checker/storage/
+3_security_analysis/umcci-checker/matter-device/
+3_security_analysis/umcci-checker/tmp-task.md
+4_analysis_output/umcci-checker/last_run.log
 
 # Mobile Apps
-mobile_apps/downloads/
-mobile_apps/tmp-task.md
-mobile_apps/crawler/tools/*.jar
+1_analysis_object/general/mobile_apps/downloads/
+1_analysis_object/general/mobile_apps/tmp-task.md
+1_analysis_object/general/mobile_apps/crawler/tools/*.jar
 
 # Editors
 .vscode/

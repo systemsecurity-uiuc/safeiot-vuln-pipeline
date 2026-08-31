@@ -1,28 +1,15 @@
 # Local Pipeline Deployment
 
-Step-by-step instructions for deploying the SafeIoT pipeline on your local machine.
+How to run the pipeline on your own machine.
 
-Currently, the pipeline includes one integrated tool: **UMCCI Checker**.
+Each tool carries its own prerequisites; there is no single install step for the repository. The per-tool entry points live in
+[`pipeline_harness/`](../pipeline_harness/): pick a tool, read its README, and run its
+script.
 
-_Full instructions to be filled in._
+| Tool | Harness |
+|---|---|
+| UMCCI Checker | [`pipeline_harness/umcci-checker/`](../pipeline_harness/umcci-checker/README.md) |
 
-<!-- Suggested sections:
-
-## Overview
-
-## Prerequisites
-
-## 1. Clone the Repository
-
-## 2. Set Up the CHIP SDK
-→ See [chip-sdk/README.md](../chip-sdk/README.md)
-
-## 3. Run UMCCI Checker
-→ See [umcci-checker/README.md](../umcci-checker/README.md)
-
-## 4. (Optional) Run the Mobile App Crawler
-→ See [mobile_apps/crawler/README.md](../mobile_apps/crawler/README.md)
-
-## Troubleshooting
-
--->
+Shared analysis objects that several tools depend on — protocol specifications, the CHIP
+SDK, the IoT companion-app crawler — are set up once under
+[`1_analysis_object/general/`](../1_analysis_object/general/README.md).

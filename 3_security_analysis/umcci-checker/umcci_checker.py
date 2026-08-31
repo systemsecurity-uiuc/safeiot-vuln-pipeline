@@ -13,6 +13,7 @@ GUI:       mobile-mcp (Android automation via ADB)
 
 import argparse
 import asyncio
+import os
 import re
 import subprocess
 import sys
@@ -25,7 +26,9 @@ from claude_agent_sdk import query, ClaudeAgentOptions, AssistantMessage, Result
 from claude_agent_sdk.types import TextBlock
 
 # ── Paths ────────────────────────────────────────────────────────────────────
-CHIP_TOOL    = "/Users/haoyuli9/Desktop/IoT-Matter/connectedhomeip/out/host/chip-tool"
+CHIP_TOOL    = os.environ.get(
+    "CHIP_TOOL", "/Users/haoyuli9/Desktop/IoT-Matter/connectedhomeip/out/host/chip-tool"
+)
 MATTER_DIR   = str(Path(__file__).parent / "matter-device")
 STORAGE_PATH = str(Path(__file__).parent / "storage" / "virtual-device")
 MATTER_PORT  = 5542
