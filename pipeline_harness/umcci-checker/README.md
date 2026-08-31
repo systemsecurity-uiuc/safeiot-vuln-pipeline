@@ -2,9 +2,9 @@
 
 UMCCI Checker automatically identifies security vulnerabilities in IoT vendors' Matter
 SDK integrations. The flaws it found have been fixed by CSA, Apple, Google, SmartThings,
-Comcast, and Tuya. This demo implements **Flaw Type 4 — Untrusted Fabric Information**,
-based on the NDSS 2025 paper "Hidden and Lost Control: on Security Design Risks in IoT
-User-Facing Matter Controller."
+Comcast, and Tuya. This demo implements **Flaw Type 4 — Untrusted Fabric Information** from
+the NDSS 2025 paper [Hidden and Lost Control: on Security Design Risks in IoT User-Facing
+Matter Controller](https://www.ndss-symposium.org/ndss-paper/hidden-and-lost-control-on-security-design-risks-in-iot-user-facing-matter-controller/).
 
 The checker pairs a virtual Matter device with Google Home, joins a second fabric using
 `chip-tool` with a forged Vendor ID (impersonating SmartThings, VID 4362) and a forged
@@ -67,3 +67,18 @@ device. Those values are set by the controller itself and are never cryptographi
 verified. Any app or tool that can open a commissioning window can join a device's fabric
 with arbitrary values, and the owner's hub app will display whatever is stored,
 potentially misleading the owner about which services control their device.
+
+## Paper
+
+Haoqiang Wang, Yiwei Fang, Yichen Liu, Ze Jin, Emma Delph, Xiaojiang Du, Qixu Liu, Luyi Xing.
+[*Hidden and Lost Control: on Security Design Risks in IoT User-Facing Matter Controller*](https://www.ndss-symposium.org/ndss-paper/hidden-and-lost-control-on-security-design-risks-in-iot-user-facing-matter-controller/).
+Network and Distributed System Security Symposium (NDSS), 2025.
+
+```bibtex
+@inproceedings{umcci,
+  title={Hidden and Lost Control: on Security Design Risks in IoT User-Facing Matter Controller},
+  author={Haoqiang Wang and Yiwei Fang and Yichen Liu and Ze Jin and Emma Delph and Xiaojiang Du and Qixu Liu and Luyi Xing},
+  booktitle={Proceedings of the ISOC Network and Distributed System Security Symposium (NDSS)},
+  year={2025}
+}
+```
